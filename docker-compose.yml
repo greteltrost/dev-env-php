@@ -1,0 +1,53 @@
+web:
+    image: nginx:alpine
+    ports:
+        - "8000:80"
+    links:
+        - php
+        - database
+        - cache
+        - worker
+        - mailer
+    volumes:
+      - ./volumes/logs/nginx:/var/log/nginx
+      - ./src:/src
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf      
+      - ./nginx/sites:/etc/nginx/conf.d/
+      
+php:
+    build: php7-fpm/.
+    links:
+      - cache
+      - worker
+      - database
+      - mailer
+    restart: always
+    volumes:
+        - ./src:/src
+        - ./volumes/logs/php-fpm:/var/log/
+
+database:
+  image: percona:latest
+  volumes:
+  - ./volumes/mysql:/var/lib/mysql
+  - ./volumes/logs/mysql:/var/log/mysql
+  ports:
+    - "3307:3306"
+  environment:
+    MYSQL_DATABASE: database
+    MYSQL_USER: database
+    MYSQL_PASSWORD: database
+    MYSQL_ROOT_PASSWORD: database
+
+cache:
+  image: redis:alpine
+
+worker:
+  build: beanstalkd/.
+  ports:
+    - 13000:13000
+
+mailer:
+  image: mailhog/mailhog
+  ports:
+    - 8025:8025
